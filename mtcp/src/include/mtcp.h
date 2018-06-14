@@ -50,6 +50,7 @@
 
 #define RATE_LIMIT_ENABLED          FALSE
 #define PACING_ENABLED              FALSE
+
 #define USE_CCP                     TRUE
 
 #define LOCK_STREAM_QUEUE	FALSE
