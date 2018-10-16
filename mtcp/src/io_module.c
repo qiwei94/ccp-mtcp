@@ -297,8 +297,11 @@ SetNetEnv(char *dev_name_list, char *port_stat_list)
 					    "--socket-mem",
 					    socket_mem,
 					    "--proc-type=auto"
+                                            "--log-level=8",
+                                            "--log-level=pmd,8",
 		};
-		probe_all_rte_devices(argv, &argc, dev_name_list);
+                // TODO this was deleted upstream...
+		//probe_all_rte_devices(argv, &argc, dev_name_list);
 
 		/*
 		 * re-set getopt extern variable optind.
