@@ -1108,6 +1108,9 @@ CCPRecvLoopThread(void *arg) {
 				}
 				break;
 			}
+			if (!mtcp->to_ccp) {
+				setup_ccp_send_socket(mtcp);
+			}
 			ccp_read_msg(recvBuf, bytes_recvd);
 		} while(1);
 	}
