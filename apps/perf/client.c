@@ -37,9 +37,9 @@
 
 #define CALC_MD5SUM FALSE
 
-#define TIMEVAL_TO_MSEC(t)		((t.tv_sec * 1000) + (t.tv_usec / 1000))
-#define TIMEVAL_TO_USEC(t)		((t.tv_sec * 1000000) + (t.tv_usec))
-#define TS_GT(a,b)				((int64_t)((a)-(b)) > 0)
+#define TIMEVAL_TO_MSEC(t)      ((t.tv_sec * 1000) + (t.tv_usec / 1000))
+#define TIMEVAL_TO_USEC(t)      ((t.tv_sec * 1000000) + (t.tv_usec))
+#define TS_GT(a,b)              ((int64_t)((a)-(b)) > 0)
 
 #ifndef TRUE
 #define TRUE (1)
@@ -63,19 +63,19 @@
 
 struct thread_context
 {
-	int core;
-	mctx_t mctx;
+    int core;
+    mctx_t mctx;
 };
 
 void SignalHandler(int signum) 
 {
-	ERROR("Received SIGINT");
-	exit(-1);
+    ERROR("Received SIGINT");
+    exit(-1);
 }
 
 void print_usage(int mode) {
     if (mode == SEND_MODE || mode == 0) {
-		ERROR("(client initiates)   usage: ./client send [ip] [port] [bytes]");
+        ERROR("(client initiates)   usage: ./client send [ip] [port] [bytes]");
     }
     if (mode == WAIT_MODE || mode == 0) {
         ERROR("(server initiates)   usage: ./client wait [bytes]");
@@ -84,42 +84,48 @@ void print_usage(int mode) {
 
 int main(int argc, char **argv) 
 {
-	int ret, i, c;
-	// mtcp 
-	mctx_t mctx;
-	struct mtcp_conf mcfg;
-	struct thread_context *ctx;
-	struct mtcp_epoll_event *events;
-	struct mtcp_epoll_event ev;
-	int core = 0,
-			ep_id;
-	// sockets
-	struct sockaddr_in saddr, daddr;
-	int sockfd;
-	// counters
-	int sec_to_send;
-	int wrote        = 0,
+    int ret, i, c;
+
+    //mtcp
+    mctx_t mctx;
+    struct mtcp_conf mcfg;
+    struct thread_context *ctx;
+    struct mtcp_epoll_event *events;
+    struct mtcp_epoll_event ev;
+    int core = 0;
+    int ep_id;
+
+    // sockets
+    struct sockaddr_in saddr, daddr;
+    int sockfd;
+    int backlog = 3;
+
+    // counters
+    int sec_to_send;
+    int wrote        = 0,
         read         = 0,
         bytes_sent   = 0,
         events_ready = 0,
         nevents      = 0,
         sent_close   = 0;
 
-	double elapsed_time = 0.0;
-	struct timeval t1, t2;
+    // time
+    double elapsed_time = 0.0;
+    struct timeval t1, t2;
     struct timespec ts_start, now;
     time_t end_time;
-	// send buffer
-	char buf[BUF_LEN];
-	char rcvbuf[BUF_LEN];
 
-        int backlog = 3;
-        int mode = 0;
+    // send buffer
+    char buf[BUF_LEN];
+    char rcvbuf[BUF_LEN];
 
-	if (argc < 2) {
+    // args
+    int mode = 0;
+
+    if (argc < 2) {
         print_usage(0);
-		return -1;
-	}
+        return -1;
+    }
 
     if (strncmp(argv[1], "send", 4) == 0) {   
         if (argc < 5) { 
@@ -160,44 +166,44 @@ int main(int argc, char **argv)
     }
 
 
-	// This must be done before mtcp_init
-	mtcp_getconf(&mcfg);
-	mcfg.num_cores = 1;
-	mtcp_setconf(&mcfg);
-	// Seed RNG
-	srand(time(NULL));
+    // This must be done before mtcp_init
+    mtcp_getconf(&mcfg);
+    mcfg.num_cores = 1;
+    mtcp_setconf(&mcfg);
+    // Seed RNG
+    srand(time(NULL));
 
-	// Init mtcp
-	DEBUG("Initializing mtcp...\n");
-	if (mtcp_init("client.conf")) {
-		ERROR("Failed to initialize mtcp.\n");
-		return -1;
-	}
+    // Init mtcp
+    DEBUG("Initializing mtcp...\n");
+    if (mtcp_init("client.conf")) {
+        ERROR("Failed to initialize mtcp.\n");
+        return -1;
+    }
 
-	// Default simple config, this must be done after mtcp_init
-	mtcp_getconf(&mcfg);
-	mcfg.max_concurrency = 3 * CONCURRENCY;
-	mcfg.max_num_buffers = 3 * CONCURRENCY;
-	mtcp_setconf(&mcfg);
+    // Default simple config, this must be done after mtcp_init
+    mtcp_getconf(&mcfg);
+    mcfg.max_concurrency = 3 * CONCURRENCY;
+    mcfg.max_num_buffers = 3 * CONCURRENCY;
+    mtcp_setconf(&mcfg);
 
-	// Catch ctrl+c to clean up
-	mtcp_register_signal(SIGINT, SignalHandler);
+    // Catch ctrl+c to clean up
+    mtcp_register_signal(SIGINT, SignalHandler);
 
-	DEBUG("Creating thread context...");
-	mtcp_core_affinitize(core);
-	ctx = (struct thread_context *) calloc(1, sizeof(struct thread_context));
-	if (!ctx) {
-		ERROR("Failed to create context.");
-		perror("calloc");
-		return -1;
-	}
-	ctx->core = core;
-	ctx->mctx = mtcp_create_context(core);
-	if (!ctx->mctx) {
-		ERROR("Failed to create mtcp context.");
-		return -1;
-	}
-	mctx = ctx->mctx;
+    DEBUG("Creating thread context...");
+    mtcp_core_affinitize(core);
+    ctx = (struct thread_context *) calloc(1, sizeof(struct thread_context));
+    if (!ctx) {
+        ERROR("Failed to create context.");
+        perror("calloc");
+        return -1;
+    }
+    ctx->core = core;
+    ctx->mctx = mtcp_create_context(core);
+    if (!ctx->mctx) {
+        ERROR("Failed to create mtcp context.");
+        return -1;
+    }
+    mctx = ctx->mctx;
 
     if (mode == SEND_MODE) {
         // Create pool of TCP source ports for outgoing conns
@@ -205,31 +211,31 @@ int main(int argc, char **argv)
         mtcp_init_rss(mctx, INADDR_ANY, IP_RANGE, daddr.sin_addr.s_addr, daddr.sin_port);
     }
 
-	DEBUG("Creating epoller...");
-	ep_id = mtcp_epoll_create(ctx->mctx, mcfg.max_num_buffers);
-	events = (struct mtcp_epoll_event *) calloc(mcfg.max_num_buffers, sizeof(struct mtcp_epoll_event));
-	if (!events) {
-		ERROR("Failed to allocate events.");
-		return -1;
-	}
+    DEBUG("Creating epoller...");
+    ep_id = mtcp_epoll_create(ctx->mctx, mcfg.max_num_buffers);
+    events = (struct mtcp_epoll_event *) calloc(mcfg.max_num_buffers, sizeof(struct mtcp_epoll_event));
+    if (!events) {
+        ERROR("Failed to allocate events.");
+        return -1;
+    }
 
 
     DEBUG("Creating socket...");
-	sockfd = mtcp_socket(mctx, AF_INET, SOCK_STREAM, 0);
-	if (sockfd < 0) {
-		ERROR("Failed to create socket.");
-		return -1;
-	}
+    sockfd = mtcp_socket(mctx, AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        ERROR("Failed to create socket.");
+        return -1;
+    }
 
-	ret = mtcp_setsock_nonblock(mctx, sockfd);
-	if (ret < 0) {
-		ERROR("Failed to set socket in nonblocking mode.");
-		return -1;
-	}
+    ret = mtcp_setsock_nonblock(mctx, sockfd);
+    if (ret < 0) {
+        ERROR("Failed to set socket in nonblocking mode.");
+        return -1;
+    }
 
-	ev.events = MTCP_EPOLLIN;
-	ev.data.sockid = sockfd;
-	mtcp_epoll_ctl(mctx, ep_id, MTCP_EPOLL_CTL_ADD, sockfd, &ev);
+    ev.events = MTCP_EPOLLIN;
+    ev.data.sockid = sockfd;
+    mtcp_epoll_ctl(mctx, ep_id, MTCP_EPOLL_CTL_ADD, sockfd, &ev);
 
     if (mode == WAIT_MODE) {
         ret = mtcp_bind(mctx, sockfd, (struct sockaddr *)&saddr, sizeof(struct sockaddr_in));
@@ -294,17 +300,17 @@ end_wait_loop:
     clock_gettime(CLOCK_MONOTONIC, &ts_start);
     end_time = ts_start.tv_sec + sec_to_send;
 
-	memset(buf, 0x90, sizeof(char) * BUF_LEN);
-	buf[BUF_LEN-1] = '\0';
+    memset(buf, 0x90, sizeof(char) * BUF_LEN);
+    buf[BUF_LEN-1] = '\0';
 
-	while (1) {
-		wrote = mtcp_write(ctx->mctx, sockfd, buf, BUF_LEN);
+    while (1) {
+        wrote = mtcp_write(ctx->mctx, sockfd, buf, BUF_LEN);
         bytes_sent += wrote;
         if (wrote > 0) {
             gettimeofday(&t1, NULL);
             break;
         }
-	}
+    }
 
     //ev.events = MTCP_EPOLLIN | MTCP_EPOLLOUT;
     //mtcp_epoll_ctl(mctx, ep_id, MTCP_EPOLL_CTL_ADD, sockfd, &ev);
@@ -342,22 +348,22 @@ end_wait_loop:
 
 
 stop_timer:
-	gettimeofday(&t2, NULL);
+    gettimeofday(&t2, NULL);
 
-	DEBUG("Done reading. Closing socket...");
-	mtcp_close(mctx, sockfd);
-	DEBUG("Socket closed.");
+    DEBUG("Done reading. Closing socket...");
+    mtcp_close(mctx, sockfd);
+    DEBUG("Socket closed.");
 
     printf("\n\n");
-	elapsed_time = (t2.tv_sec - t1.tv_sec) * 1.0;
-	elapsed_time += (t2.tv_usec - t1.tv_usec) / 1000000.0;
-	printf("Time elapsed: %f\n", elapsed_time);
-	printf("Total bytes sent: %d\n", bytes_sent);
-	printf("Throughput: %.3fMbit/sec\n", ((bytes_sent * 8.0 / 1000000.0) / elapsed_time));
+    elapsed_time = (t2.tv_sec - t1.tv_sec) * 1.0;
+    elapsed_time += (t2.tv_usec - t1.tv_usec) / 1000000.0;
+    printf("Time elapsed: %f\n", elapsed_time);
+    printf("Total bytes sent: %d\n", bytes_sent);
+    printf("Throughput: %.3fMbit/sec\n", ((bytes_sent * 8.0 / 1000000.0) / elapsed_time));
 
-	mtcp_destroy_context(ctx->mctx);
-	free(ctx);
-	mtcp_destroy();
+    mtcp_destroy_context(ctx->mctx);
+    free(ctx);
+    mtcp_destroy();
 
-	return 0;
+    return 0;
 }
