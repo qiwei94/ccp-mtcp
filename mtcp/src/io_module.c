@@ -97,6 +97,8 @@ GetNumQueues()
 #endif /* !PSIO */
 /*----------------------------------------------------------------------------*/
 #ifndef DISABLE_DPDK
+
+#if 0
 static void
 probe_all_rte_devices(char **argv, int *argc, char *dev_name_list)
 {
@@ -148,6 +150,8 @@ probe_all_rte_devices(char **argv, int *argc, char *dev_name_list)
 	close(fd);
 	free(dev_tokenizer);
 }
+#endif
+
 #endif /* !DISABLE_DPDK */
 /*----------------------------------------------------------------------------*/
 int
@@ -294,9 +298,7 @@ SetNetEnv(char *dev_name_list, char *port_stat_list)
 					    cpumaskbuf,
 					    "-n",
 					    mem_channels,
-					    "--socket-mem",
-					    socket_mem,
-					    "--proc-type=auto"
+					    "--proc-type=auto",
                                             "--log-level=8",
                                             "--log-level=pmd,8",
 		};
