@@ -75,10 +75,10 @@ void SignalHandler(int signum)
 
 void print_usage(int mode) {
     if (mode == SEND_MODE || mode == 0) {
-        ERROR("(client initiates)   usage: ./client send [ip] [port] [bytes]");
+        ERROR("(client initiates)   usage: ./client send [ip] [port] [length (seconds)]");
     }
     if (mode == WAIT_MODE || mode == 0) {
-        ERROR("(server initiates)   usage: ./client wait [bytes]");
+        ERROR("(server initiates)   usage: ./client wait [length (seconds)]");
     }
 }
 
